@@ -1,0 +1,12 @@
+# Скопируй этот файл в terraform.tfvars и подставь свои значения
+yc_cloud_id  = "<your_cloud_id>"
+yc_folder_id = "<your_folder_id>"
+yc_zone      = "ru-central1-a"
+sa_key_file  = "authorized_key.json"
+
+# Статический ключ доступа Object Storage
+access_key   = "<your_static_access_key_id>"
+secret_key   = "<your_static_secret_key>"
+
+# Глобально уникальное имя бакета
+bucket_name  = "<your-unique-bucket-name>"

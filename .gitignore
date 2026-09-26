@@ -1,0 +1,18 @@
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+crash.log
+
+# Секреты
+terraform.tfvars
+*.tfvars
+!terraform.tfvars.example
+authorized_key.json
+*.pem
+*.key
+
+# Прочее
+.DS_Store
+*.log
