@@ -74,3 +74,100 @@
 Домашняя работа оформляется в своём Git репозитории в файле README.md. Выполненное домашнее задание пришлите ссылкой на .md-файл в вашем репозитории.
 Файл README.md должен содержать скриншоты вывода необходимых команд, а также скриншоты результатов.
 Репозиторий должен содержать тексты манифестов или ссылки на них в файле README.md.
+
+
+
+
+
+# Домашнее задание к занятию «Безопасность в облачных провайдерах»  
+
+Используя конфигурации, выполненные в рамках предыдущих домашних заданий, нужно добавить возможность шифрования бакета.
+
+---
+## Задание 1. Yandex Cloud   
+
+1. С помощью ключа в KMS необходимо зашифровать содержимое бакета:
+
+ - создать ключ в KMS;
+
+KMS-ключ создан декларативно через Terraform (файл `kms.tf`):
+
+```hcl
+resource "yandex_kms_symmetric_key" "bucket_key" {
+  name              = "bucket-encryption-key"
+  description       = "Ключ для шифрования бакета Object Storage"
+  default_algorithm = "AES_128"
+  rotation_period   = "8760h"
+}
+```
+![Список KMS-ключей](screenshots/10-kms-key-list.png)
+
+ - с помощью ключа зашифровать содержимое бакета, созданного ранее.
+
+В манифест `bucket.tf` добавлен блок `server_side_encryption_configuration`:
+
+```hcl
+server_side_encryption_configuration {
+  rule {
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = yandex_kms_symmetric_key.bucket_key.id
+      sse_algorithm     = "aws:kms"
+    }
+  }
+}
+```
+![Объект зашифрован](screenshots/11-object-encrypted-head.png)
+![Заголовки шифрования при отдаче](screenshots/12-curl-encryption-headers.png)
+
+2. Создать статический сайт в Object Storage c собственным публичным адресом и сделать доступным по HTTPS:
+
+ - создать сертификат;
+
+Собственный сертификат в Certificate Manager не создавался. Для раздачи статического сайта из Object Storage по HTTPS используется встроенный wildcard-сертификат Yandex Cloud `*.website.yandexcloud.net`. Для бакетов без точек в имени Object Storage автоматически раздаёт статический сайт по HTTPS с этим сертификатом, без необходимости загружать собственный сертификат безопасности.
+
+ - создать статическую страницу в Object Storage и применить сертификат HTTPS;
+
+Бакет `stomple-site-20260926` создан через Terraform с блоком `website`:
+
+```hcl
+resource "yandex_storage_bucket" "site_bucket" {
+  bucket     = "stomple-site-20260926"
+  access_key = var.access_key
+  secret_key = var.secret_key
+
+  anonymous_access_flags {
+    read = true
+    list = false
+  }
+
+  website {
+    index_document = "index.html"
+  }
+}
+```
+
+Статическая страница `index.html` загружена в бакет через ресурс `yandex_storage_object.index`:
+
+```hcl
+resource "yandex_storage_object" "index" {
+  bucket       = yandex_storage_bucket.site_bucket.id
+  key          = "index.html"
+  source       = "index.html"
+  content_type = "text/html"
+  access_key   = var.access_key
+  secret_key   = var.secret_key
+
+  depends_on = [yandex_storage_bucket.site_bucket]
+}
+```
+
+Бакет автоматически получает HTTPS-эндпоинт `stomple-site-20260926.website.yandexcloud.net`, к которому привязан wildcard-сертификат Yandex Cloud. Дополнительных действий по применению сертификата не требуется — HTTPS работает сразу после включения настройки `website`.
+
+ - в качестве результата предоставить скриншот на страницу с сертификатом в заголовке (замочек).
+![Сайт по HTTPS](screenshots/14-site-https-lock.png)
+
+### Правила приёма работы
+
+Домашняя работа оформляется в своём Git репозитории в файле README.md. Выполненное домашнее задание пришлите ссылкой на .md-файл в вашем репозитории.
+Файл README.md должен содержать скриншоты вывода необходимых команд, а также скриншоты результатов.
+Репозиторий должен содержать тексты манифестов или ссылки на них в файле README.md.
